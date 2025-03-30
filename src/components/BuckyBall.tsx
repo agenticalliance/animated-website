@@ -16,47 +16,45 @@ const SkillNode = ({ position, text, cameraPosition, visible }: SkillNodeProps) 
   const [opacity, setOpacity] = useState(0);
   const positionVector = new THREE.Vector3(...position);
 
-  useEffect(() => {
+  useFrame((state) => {
     if (!visible) {
       setOpacity(0);
       return;
     }
 
-    // Calculate the dot product to determine if this node is facing the camera
-    const normalizedPos = positionVector.clone().normalize();
-    const cameraToPoint = positionVector.clone().sub(cameraPosition);
-    const distance = cameraToPoint.length();
-    const dotProduct = normalizedPos.dot(cameraPosition.clone().normalize());
+    const worldPos = positionVector.clone();
+    if (state.camera) {
+      const cameraToPoint = worldPos.clone().sub(state.camera.position);
+      const distance = cameraToPoint.length();
+      const dotProduct = worldPos.normalize().dot(state.camera.position.clone().normalize());
 
-    // Use distance and orientation to fade text similar to fog effect
-    // Fog is configured from 2 to 8 units
-    if (dotProduct < -0.3 || distance > 7.5) {
-      setOpacity(0); // Behind the buckyball or too far away
-    } else if (distance < 5) {
-      setOpacity(Math.min((10 - distance) / 5, 1)); // Fade with distance, clamped to 1.0 max
-    } else {
-      setOpacity(0.5); // On the edge - 50% visible as requested
+      if (dotProduct < -0.3 || distance > 35) {
+        setOpacity(0);
+      } else if (distance < 25) {
+        setOpacity(Math.min((35 - distance) / 10, 0.8));
+      } else {
+        setOpacity(0.4);
+      }
     }
-  }, [position, cameraPosition, visible]);
+  });
 
   if (!visible) return null;
 
   return (
-    <Html position={position} zIndexRange={[0, 0]}>
+    <Html position={position} center>
       <div 
         ref={textRef}
         className="text-white text-sm font-mono whitespace-nowrap pointer-events-none"
         style={{ 
-          opacity: opacity * 0.7, // Set text to 70% alpha for better visibility
+          opacity,
           transition: "opacity 0.3s ease-in-out",
           background: "linear-gradient(90deg, #FFD700, #DAA520)",
           WebkitBackgroundClip: "text",
           WebkitTextFillColor: "transparent",
           padding: "2px 8px",
           backdropFilter: "blur(1px)",
-          transform: "translateX(10px)",
           textShadow: "0 0 5px rgba(255,215,0,0.3)",
-          pointerEvents: "none" // Ensure text doesn't interfere with interactions
+          transform: "translate(-50%, -50%)",
         }}
       >
         {text}
@@ -130,10 +128,10 @@ const getC60Vertices = (radius: number): Array<[number, number, number]> => {
 
 const BuckyballScene = ({ skills }: { skills: string[] }) => {
   const groupRef = useRef<THREE.Group>(null);
-  const [cameraPos, setCameraPos] = useState(new THREE.Vector3(0, 0, 0));
   const [nodeSkills, setNodeSkills] = useState<number[]>([]);
   const [nodesToUpdate, setNodesToUpdate] = useState<number[]>([]);
   const [frameCount, setFrameCount] = useState(0);
+  
   const verticesVectors = useMemo(() => {
     const vertexPositions = getC60Vertices(BUCKYBALL_RADIUS);
     return vertexPositions.map(pos => new THREE.Vector3(...pos));
@@ -150,20 +148,22 @@ const BuckyballScene = ({ skills }: { skills: string[] }) => {
       groupRef.current.rotation.y += 0.002;
       groupRef.current.rotation.x += 0.0005;
     }
-    setCameraPos(state.camera.position.clone());
+
     setFrameCount(prev => (prev + 1) % 10);
 
     if (frameCount === 0) {
       const newNodesToUpdate: number[] = [];
-
       verticesVectors.forEach((vec, nodeIndex) => {
-        const positionVector = vec.clone();
-        const cameraToPoint = positionVector.clone().sub(state.camera.position);
-        const distance = cameraToPoint.length();
-        const dotProduct = positionVector.clone().normalize().dot(state.camera.position.normalize());
-        
-        if (dotProduct < -0.5 && distance > 6) {
-          newNodesToUpdate.push(nodeIndex);
+        if (groupRef.current) {
+          const worldPos = vec.clone();
+          worldPos.applyMatrix4(groupRef.current.matrixWorld);
+          const cameraToPoint = worldPos.clone().sub(state.camera.position);
+          const distance = cameraToPoint.length();
+          const dotProduct = worldPos.normalize().dot(state.camera.position.clone().normalize());
+          
+          if (dotProduct < -0.3 && distance > BUCKYBALL_RADIUS * 2) {
+            newNodesToUpdate.push(nodeIndex);
+          }
         }
       });
 
@@ -212,20 +212,16 @@ const BuckyballScene = ({ skills }: { skills: string[] }) => {
       
       {verticesVectors.map((vec, i) => {
         const position: [number, number, number] = [vec.x, vec.y, vec.z];
-        let text = skills[nodeSkills[i] || 0] || "";
-        const visible = true;
-
-        if (!text) {
-          text = skills[0];
-        }
+        const skillIndex = nodeSkills[i] !== undefined ? nodeSkills[i] % skills.length : 0;
+        const text = skills[skillIndex] || skills[0];
         
         return (
-          <SkillNode 
+          <SkillNode
             key={i}
             position={position}
             text={text}
-            cameraPosition={cameraPos}
-            visible={visible}
+            cameraPosition={new THREE.Vector3(0, 0, 25)}
+            visible={true}
           />
         );
       })}
