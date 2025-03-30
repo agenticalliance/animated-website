@@ -65,7 +65,7 @@ const SkillNode = ({ position, text, cameraPosition, visible }: SkillNodeProps) 
   );
 };
 
-const BUCKYBALL_RADIUS = 2;
+const BUCKYBALL_RADIUS = 4;
 
 // Function to generate 60 vertices for a C60 Buckminsterfullerene (Truncated Icosahedron)
 const getC60Vertices = (radius: number): Array<[number, number, number]> => {
@@ -130,7 +130,7 @@ const getC60Vertices = (radius: number): Array<[number, number, number]> => {
 
 const BuckyballScene = ({ skills }: { skills: string[] }) => {
   const groupRef = useRef<THREE.Group>(null);
-  const [cameraPos, setCameraPos] = useState(new THREE.Vector3(20, 10, 20));
+  const [cameraPos, setCameraPos] = useState(new THREE.Vector3(0, 0, 0));
   const [nodeSkills, setNodeSkills] = useState<number[]>([]);
   const [nodesToUpdate, setNodesToUpdate] = useState<number[]>([]);
   const [frameCount, setFrameCount] = useState(0);
@@ -241,11 +241,11 @@ export const BuckyBall = ({ skills }: BuckyBallProps) => {
   return (
     <div className="w-full h-full">
       <Canvas
-        camera={{ position: [20, 10, 20], fov: 30 }}
+        camera={{ position: [0, 0, 25], fov: 45 }}
         gl={{ antialias: true }}
         dpr={[1, 2]}
       >
-        <fog attach="fog" args={['#080820', 15, 50]} />
+        <fog attach="fog" args={['#080820', 15, 35]} />
         <ambientLight intensity={0.5} />
         <pointLight position={[10, 10, 10]} intensity={1} />
         <BuckyballScene skills={skills} />
@@ -253,12 +253,11 @@ export const BuckyBall = ({ skills }: BuckyBallProps) => {
           enableZoom={true}
           zoomSpeed={0.6}
           enablePan={false}
-          enableRotate={true}
-          rotateSpeed={0.4}
+          enableRotate={false}
           autoRotate
           autoRotateSpeed={0.3}
-          minDistance={10}
-          maxDistance={30}
+          minDistance={15}
+          maxDistance={35}
         />
       </Canvas>
     </div>
