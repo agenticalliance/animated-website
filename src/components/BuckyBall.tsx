@@ -241,11 +241,11 @@ export const BuckyBall = ({ skills }: BuckyBallProps) => {
   return (
     <div className="w-full h-full">
       <Canvas
-        camera={{ position: [0, 0, 13], fov: 45 }}
+        camera={{ position: [0, 0, 18], fov: 45 }}
         gl={{ antialias: true }}
         dpr={[1, 2]}
       >
-        <fog attach="fog" args={['#080820', 3, 12]} />
+        <fog attach="fog" args={['#080820', 12, 17]} />
         <ambientLight intensity={0.5} />
         <pointLight position={[10, 10, 10]} intensity={1} />
         <BuckyballScene skills={skills} />
