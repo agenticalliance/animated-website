@@ -12,7 +12,35 @@ type SkillNodeProps = {
 
 const SkillNode = ({ position, text, visible }: SkillNodeProps) => {
   const textRef = useRef<HTMLDivElement>(null);
+  const [opacity, setOpacity] = useState(0);
   const positionVector = new THREE.Vector3(...position);
+
+  useFrame((state) => {
+    if (!visible) {
+      setOpacity(0);
+      return;
+    }
+
+    const element = textRef.current?.parentElement?.parentElement;
+    const parent = element && element.__r3f ? element.__r3f.parent : null;
+    
+    if (parent) {
+      const worldPos = positionVector.clone().applyMatrix4(parent.matrixWorld);
+      const zDistance = worldPos.z;
+      const maxOpacity = 0.4;
+      const fogStart = -14;
+      const fogEnd = 14;
+
+      if (zDistance < fogStart) {
+        setOpacity(0);
+      } else if (zDistance > fogEnd) {
+        setOpacity(maxOpacity);
+      } else {
+        const factor = (zDistance - fogStart) / (fogEnd - fogStart);
+        setOpacity(factor * maxOpacity);
+      }
+    }
+  });
 
   if (!visible) return null;
 
@@ -21,14 +49,15 @@ const SkillNode = ({ position, text, visible }: SkillNodeProps) => {
       <div 
         ref={textRef}
         className="text-white text-md font-semibold whitespace-nowrap pointer-events-none"
-        style={{ 
-          opacity: 1.0,
+        style={{
+          opacity,
+          transition: "opacity 0.3s ease-in-out",
           background: "linear-gradient(90deg, #FFD700, #DAA520)",
           WebkitBackgroundClip: "text",
           WebkitTextFillColor: "transparent",
           padding: "2px 8px",
-          backdropFilter: "blur(1px)",
-          textShadow: "0 0 10px rgba(255,215,0,0.5)",
+          backdropFilter: "blur(1.5px)",
+          textShadow: "0 0 15px rgba(255,215,0,0.6)",
           transform: "translate(-50%, -50%)",
           fontSize: "16px",
           letterSpacing: "0.5px"
