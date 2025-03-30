@@ -12,39 +12,7 @@ type SkillNodeProps = {
 
 const SkillNode = ({ position, text, visible }: SkillNodeProps) => {
   const textRef = useRef<HTMLDivElement>(null);
-  const [opacity, setOpacity] = useState(0);
   const positionVector = new THREE.Vector3(...position);
-
-  // Update opacity based on z-position (distance from camera along viewing axis)
-  useFrame((state) => {
-    if (!visible) {
-      setOpacity(0);
-      return;
-    }
-
-    // Get parent matrix (the buckyball group) to determine world position
-    // Access internal R3F properties with type assertion
-    const element = textRef.current?.parentElement?.parentElement;
-    // @ts-ignore - accessing internal R3F property
-    const parent = element && element.__r3f ? element.__r3f.parent : null;
-    
-    if (parent) {
-      const worldPos = positionVector.clone().applyMatrix4(parent.matrixWorld);
-      
-      // For a camera looking down z-axis, the z distance determines fog visibility
-      // Map z-position to opacity: z closer to camera = higher opacity
-      const zDistance = worldPos.z;  
-      
-      if (zDistance < -14) { // Behind fog, fully hidden (adjusted for larger radius)
-        setOpacity(0);
-      } else if (zDistance > 14) { // In front of fog, fully visible (adjusted for larger radius)
-        setOpacity(1.0); 
-      } else {
-        // Linear falloff in the fog zone
-        setOpacity(1.0 * (1 - Math.abs(zDistance) / 14));
-      }
-    }
-  });
 
   if (!visible) return null;
 
@@ -54,8 +22,7 @@ const SkillNode = ({ position, text, visible }: SkillNodeProps) => {
         ref={textRef}
         className="text-white text-md font-semibold whitespace-nowrap pointer-events-none"
         style={{ 
-          opacity,
-          transition: "opacity 0.2s ease-in-out",
+          opacity: 1.0,
           background: "linear-gradient(90deg, #FFD700, #DAA520)",
           WebkitBackgroundClip: "text",
           WebkitTextFillColor: "transparent",
