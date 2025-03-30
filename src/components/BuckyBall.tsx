@@ -237,11 +237,11 @@ export const BuckyBall = ({ skills }: BuckyBallProps) => {
   return (
     <div className="w-full h-full">
       <Canvas
-        camera={{ position: [0, 0, 25], fov: 45 }}
+        camera={{ position: [0, 0, 12], fov: 65 }}
         gl={{ antialias: true }}
         dpr={[1, 2]}
       >
-        <fog attach="fog" args={['#080820', 15, 35]} />
+        <fog attach="fog" args={['#080820', 8, 20]} />
         <ambientLight intensity={0.5} />
         <pointLight position={[10, 10, 10]} intensity={1} />
         <BuckyballScene skills={skills} />
@@ -252,8 +252,8 @@ export const BuckyBall = ({ skills }: BuckyBallProps) => {
           enableRotate={false}
           autoRotate
           autoRotateSpeed={0.3}
-          minDistance={15}
-          maxDistance={35}
+          minDistance={8}
+          maxDistance={20}
         />
       </Canvas>
     </div>
