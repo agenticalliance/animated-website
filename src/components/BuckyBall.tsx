@@ -22,14 +22,15 @@ const SkillNode = ({ position, text, visible }: SkillNodeProps) => {
     }
 
     const element = textRef.current?.parentElement?.parentElement;
+    // @ts-ignore - Ensure this comment is directly above the error line
     const parent = element && element.__r3f ? element.__r3f.parent : null;
-    
+
     if (parent) {
       const worldPos = positionVector.clone().applyMatrix4(parent.matrixWorld);
       const zDistance = worldPos.z;
-      const maxOpacity = 0.4;
-      const fogStart = -14;
-      const fogEnd = 14;
+      const maxOpacity = 0.6; // Slightly increase max opacity for debugging
+      const fogStart = -18; // Adjusted for new fog range
+      const fogEnd = 18;   // Adjusted for new fog range
 
       if (zDistance < fogStart) {
         setOpacity(0);
@@ -39,6 +40,8 @@ const SkillNode = ({ position, text, visible }: SkillNodeProps) => {
         const factor = (zDistance - fogStart) / (fogEnd - fogStart);
         setOpacity(factor * maxOpacity);
       }
+    } else {
+      setOpacity(0);
     }
   });
 
@@ -69,7 +72,7 @@ const SkillNode = ({ position, text, visible }: SkillNodeProps) => {
   );
 };
 
-const BUCKYBALL_RADIUS = 8;
+const BUCKYBALL_RADIUS = 10.5;
 
 // Function to generate 60 vertices for a C60 Buckminsterfullerene (Truncated Icosahedron)
 const getC60Vertices = (radius: number): Array<[number, number, number]> => {
@@ -180,13 +183,11 @@ const BuckyballScene = ({ skills }: { skills: string[] }) => {
       
       verticesVectors.forEach((vec, nodeIndex) => {
         if (groupRef.current) {
-          // Get world position accounting for rotation
           const worldPos = vec.clone();
           worldPos.applyMatrix4(groupRef.current.matrixWorld);
           
-          // We consider the z position to determine if it's behind the fog plane
-          // For a fixed camera looking down z-axis, any vertex with z > fogFar is behind fog
-          if (worldPos.z < -30) { // Nodes going deep behind the buckyball
+          // Adjust skill swap threshold for larger scale
+          if (worldPos.z < -50) { 
             newNodesToUpdate.push(nodeIndex);
           }
         }
@@ -265,7 +266,7 @@ export const BuckyBall = ({ skills }: BuckyBallProps) => {
         gl={{ antialias: true }}
         dpr={[1, 2]}
       >
-        <fog attach="fog" args={['#080820', 14, 30]} />
+        <fog attach="fog" args={['#080820', 18, 40]} />
         <ambientLight intensity={0.5} />
         <pointLight position={[10, 10, 10]} intensity={1} />
         <BuckyballScene skills={skills} />
