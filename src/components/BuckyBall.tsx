@@ -130,7 +130,7 @@ const getC60Vertices = (radius: number): Array<[number, number, number]> => {
 
 const BuckyballScene = ({ skills }: { skills: string[] }) => {
   const groupRef = useRef<THREE.Group>(null);
-  const [cameraPos, setCameraPos] = useState(new THREE.Vector3(0, 0, 11));
+  const [cameraPos] = useState(new THREE.Vector3(0, 0, 18));
   const [nodeSkills, setNodeSkills] = useState<number[]>([]);
   const [nodesToUpdate, setNodesToUpdate] = useState<number[]>([]);
   const [frameCount, setFrameCount] = useState(0);
@@ -145,12 +145,13 @@ const BuckyballScene = ({ skills }: { skills: string[] }) => {
     return new THREE.EdgesGeometry(convexGeom);
   }, [verticesVectors]);
 
-  useFrame((state) => {
+  useFrame(() => {
     if (groupRef.current) {
+      // Smooth, constant rotation
       groupRef.current.rotation.y += 0.002;
       groupRef.current.rotation.x += 0.0005;
     }
-    setCameraPos(state.camera.position);
+
     setFrameCount(prev => (prev + 1) % 10);
 
     if (frameCount === 0) {
@@ -158,9 +159,9 @@ const BuckyballScene = ({ skills }: { skills: string[] }) => {
 
       verticesVectors.forEach((vec, nodeIndex) => {
         const positionVector = vec.clone();
-        const cameraToPoint = positionVector.clone().sub(state.camera.position);
+        const cameraToPoint = positionVector.clone().sub(cameraPos);
         const distance = cameraToPoint.length();
-        const dotProduct = positionVector.clone().normalize().dot(state.camera.position.normalize());
+        const dotProduct = positionVector.clone().normalize().dot(cameraPos.normalize());
         
         if (dotProduct < -0.5 && distance > 6) {
           newNodesToUpdate.push(nodeIndex);
@@ -249,15 +250,6 @@ export const BuckyBall = ({ skills }: BuckyBallProps) => {
         <ambientLight intensity={0.5} />
         <pointLight position={[10, 10, 10]} intensity={1} />
         <BuckyballScene skills={skills} />
-        <OrbitControls 
-          enableZoom={false}
-          enablePan={false}
-          rotateSpeed={0.5}
-          autoRotate
-          autoRotateSpeed={0.5}
-          minDistance={18}
-          maxDistance={18}
-        />
       </Canvas>
     </div>
   );
