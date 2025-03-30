@@ -12,7 +12,7 @@ type SkillNodeProps = {
 
 const SkillNode = ({ position, text, visible }: SkillNodeProps) => {
   const textSprite = useRef<THREE.Sprite>(null);
-  const [opacity, setOpacity] = useState(0.7); // Start with higher opacity
+  const [opacity, setOpacity] = useState(0.5); // Reduced initial opacity from 0.7 to 0.5
   const positionVector = new THREE.Vector3(...position);
 
   // Create a canvas texture for the text
@@ -31,14 +31,14 @@ const SkillNode = ({ position, text, visible }: SkillNodeProps) => {
       gradient.addColorStop(1, '#DAA520');
       
       context.fillStyle = gradient;
-      context.font = 'bold 32px Arial';
+      context.font = 'bold 16px Arial'; // Reduced from 32px to 16px (50% smaller)
       context.textAlign = 'center';
       context.textBaseline = 'middle';
       context.fillText(text, canvas.width / 2, canvas.height / 2);
       
-      // Add glow effect
-      context.shadowColor = 'rgba(255, 215, 0, 0.8)';
-      context.shadowBlur = 15;
+      // Add stronger glow effect
+      context.shadowColor = 'rgba(255, 215, 0, 0.9)'; // Increased opacity from 0.8 to 0.9
+      context.shadowBlur = 25; // Increased from 15 to 25
       context.fillText(text, canvas.width / 2, canvas.height / 2);
     }
     
@@ -66,13 +66,13 @@ const SkillNode = ({ position, text, visible }: SkillNodeProps) => {
     // If in front and close, show with appropriate opacity
     else if (dotProduct > 0.1) {
       // Base opacity on distance - closer is more visible
-      const maxOpacity = 0.7;
+      const maxOpacity = 0.5; // Reduced from 0.7 to 0.5
       const distanceFactor = Math.max(0, Math.min(1, 1 - (distanceToCamera - 15) / 25));
       setOpacity(maxOpacity * distanceFactor);
     }
     // Side view - partial visibility
     else {
-      setOpacity(0.2);
+      setOpacity(0.15); // Reduced from 0.2 to 0.15
     }
     
     // Always look at camera (billboarding)
@@ -85,7 +85,7 @@ const SkillNode = ({ position, text, visible }: SkillNodeProps) => {
     <sprite 
       ref={textSprite} 
       position={position} 
-      scale={[3, 0.75, 1]}
+      scale={[2.5, 0.6, 1]} // Adjusted scale to better fit smaller text
     >
       <spriteMaterial 
         map={textTexture}
