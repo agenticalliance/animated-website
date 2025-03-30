@@ -1,8 +1,8 @@
-
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Html } from "@react-three/drei";
 import * as THREE from "three";
+import { ConvexGeometry } from 'three/examples/jsm/geometries/ConvexGeometry.js';
 
 type SkillNodeProps = {
   position: [number, number, number];
@@ -67,57 +67,101 @@ const SkillNode = ({ position, text, cameraPosition, visible }: SkillNodeProps) 
 
 const BUCKYBALL_RADIUS = 2;
 
-const buckyballVertices = () => {
-  const phi = (1 + Math.sqrt(5)) / 2; // Golden ratio
-  const vertices = [];
-  
-  // Generate icosahedron vertices
-  for (let i = -1; i <= 1; i += 2) {
-    for (let j = -1; j <= 1; j += 2) {
-      vertices.push([0, i, j * phi]);
-      vertices.push([i, j * phi, 0]);
-      vertices.push([j * phi, 0, i]);
+// Function to generate 60 vertices for a C60 Buckminsterfullerene (Truncated Icosahedron)
+const getC60Vertices = (radius: number): Array<[number, number, number]> => {
+  const phi = (1 + Math.sqrt(5)) / 2;
+  const preciseCoords: Array<[number, number, number]> = [];
+  const add = (v: [number, number, number]) => preciseCoords.push(v);
+
+  // Generate coordinates based on standard C60 vertex types
+  // Type 1: (0, ±1, ±3φ) and its 2 cyclic permutations (12 vertices)
+  add([0, 1, 3*phi]); add([0, 1, -3*phi]); add([0, -1, 3*phi]); add([0, -1, -3*phi]);
+  add([1, 3*phi, 0]); add([-1, 3*phi, 0]); add([1, -3*phi, 0]); add([-1, -3*phi, 0]);
+  add([3*phi, 0, 1]); add([-3*phi, 0, 1]); add([3*phi, 0, -1]); add([-3*phi, 0, -1]);
+
+  // Type 2: (±2, ±(1+2φ), ±φ) and its 2 cyclic permutations (24 vertices)
+  const p1 = [2, 1+2*phi, phi];
+  const p2 = [1+2*phi, phi, 2];
+  const p3 = [phi, 2, 1+2*phi];
+  [p1, p2, p3].forEach(p => {
+      add([ p[0],  p[1],  p[2]]); add([ p[0],  p[1], -p[2]]);
+      add([ p[0], -p[1],  p[2]]); add([ p[0], -p[1], -p[2]]);
+      add([-p[0],  p[1],  p[2]]); add([-p[0],  p[1], -p[2]]);
+      add([-p[0], -p[1],  p[2]]); add([-p[0], -p[1], -p[2]]);
+  });
+
+  // Type 3: (±1, ±(2+φ), ±2φ) and its 2 cyclic permutations (24 vertices)
+  const p4 = [1, 2+phi, 2*phi];
+  const p5 = [2+phi, 2*phi, 1];
+  const p6 = [2*phi, 1, 2+phi];
+  [p4, p5, p6].forEach(p => {
+      add([ p[0],  p[1],  p[2]]); add([ p[0],  p[1], -p[2]]);
+      add([ p[0], -p[1],  p[2]]); add([ p[0], -p[1], -p[2]]);
+      add([-p[0],  p[1],  p[2]]); add([-p[0],  p[1], -p[2]]);
+      add([-p[0], -p[1],  p[2]]); add([-p[0], -p[1], -p[2]]);
+  });
+
+  // Calculate normalization factor
+  const normFactor = Math.sqrt(10 + 9 * phi);
+
+  // Normalize and scale
+  const scaledVertices = preciseCoords.map(v => {
+    const normalized = v.map(coord => coord / normFactor) as [number, number, number];
+    return normalized.map(coord => coord * radius) as [number, number, number];
+  });
+
+  // Use a Map to ensure uniqueness based on rounded coordinates (handles potential floating point issues)
+  const uniqueVerticesMap = new Map<string, [number, number, number]>();
+  scaledVertices.forEach(v => {
+    const key = v.map(c => c.toFixed(5)).join(',');
+    if (!uniqueVerticesMap.has(key)) {
+        uniqueVerticesMap.set(key, v);
     }
+  });
+
+  const finalVertices = Array.from(uniqueVerticesMap.values());
+  if (finalVertices.length !== 60) {
+      // This should ideally not happen with the corrected logic, but log if it does
+      console.warn(`Generated ${finalVertices.length} vertices instead of 60 for C60. Check vertex generation logic.`);
   }
 
-  // Scale to desired radius
-  return vertices.map((v) => 
-    v.map((coord) => (coord * BUCKYBALL_RADIUS) / Math.sqrt(1 + phi * phi)) as [number, number, number]
-  );
+  return finalVertices;
 };
 
 const BuckyballScene = ({ skills }: { skills: string[] }) => {
-  const groupRef = useRef<THREE.Group>(null); 
-  const [cameraPos, setCameraPos] = useState(new THREE.Vector3(0, 0, 7));
+  const groupRef = useRef<THREE.Group>(null);
+  const [cameraPos, setCameraPos] = useState(new THREE.Vector3(0, 0, 11));
   const [nodeSkills, setNodeSkills] = useState<number[]>([]);
   const [nodesToUpdate, setNodesToUpdate] = useState<number[]>([]);
   const [frameCount, setFrameCount] = useState(0);
-  const vertices = useRef(buckyballVertices());
+  const verticesVectors = useMemo(() => {
+    const vertexPositions = getC60Vertices(BUCKYBALL_RADIUS);
+    return vertexPositions.map(pos => new THREE.Vector3(...pos));
+  }, []);
 
-  // Rotate the group and update camera position for skills visibility calculation
+  const wireframeGeometry = useMemo(() => {
+    if (verticesVectors.length === 0) return new THREE.BufferGeometry();
+    const convexGeom = new ConvexGeometry(verticesVectors);
+    return new THREE.EdgesGeometry(convexGeom);
+  }, [verticesVectors]);
+
   useFrame((state) => {
     if (groupRef.current) {
-      // Slow down rotation for better readability
       groupRef.current.rotation.y += 0.002;
       groupRef.current.rotation.x += 0.0005;
     }
     setCameraPos(state.camera.position);
-
-    // Update frameCount only every 10 frames to avoid too frequent checks
     setFrameCount(prev => (prev + 1) % 10);
 
-    // Check every 10 frames which nodes are far away and should be updated
     if (frameCount === 0) {
       const newNodesToUpdate: number[] = [];
 
-      // Check all nodes to find the ones facing away
-      vertices.current.forEach((position, nodeIndex) => {
-        const positionVector = new THREE.Vector3(...position);
+      verticesVectors.forEach((vec, nodeIndex) => {
+        const positionVector = vec.clone();
         const cameraToPoint = positionVector.clone().sub(state.camera.position);
         const distance = cameraToPoint.length();
         const dotProduct = positionVector.clone().normalize().dot(state.camera.position.normalize());
         
-        // If node is far away and facing away from camera, mark for update
         if (dotProduct < -0.5 && distance > 6) {
           newNodesToUpdate.push(nodeIndex);
         }
@@ -129,18 +173,15 @@ const BuckyballScene = ({ skills }: { skills: string[] }) => {
     }
   });
 
-  // Initialize all nodes with skills
   useEffect(() => {
     if (nodeSkills.length === 0) {
-      const totalNodes = vertices.current.length;
+      const totalNodes = verticesVectors.length;
       const initialSkills: number[] = new Array(totalNodes);
 
-      // Assign a skill to each node, repeating skills if necessary
       for (let i = 0; i < totalNodes; i++) {
         initialSkills[i] = i % skills.length;
       }
 
-      // Shuffle the skills for a random initial distribution
       for (let i = initialSkills.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [initialSkills[i], initialSkills[j]] = [initialSkills[j], initialSkills[i]];
@@ -150,7 +191,6 @@ const BuckyballScene = ({ skills }: { skills: string[] }) => {
     }
   }, [skills]);
 
-  // Update skills for nodes that are far away from camera
   useEffect(() => {
     if (nodesToUpdate.length > 0) {
       setNodeSkills(prev => {
@@ -166,19 +206,17 @@ const BuckyballScene = ({ skills }: { skills: string[] }) => {
 
   return (
     <group ref={groupRef}>
-      {/* Create edges for the buckyball wireframe */}
-      <lineSegments>
-        <edgesGeometry args={[new THREE.IcosahedronGeometry(BUCKYBALL_RADIUS, 1)]} /> 
+      <lineSegments geometry={wireframeGeometry}>
         <lineBasicMaterial color="#3b82f6" transparent opacity={0.5} fog={true} />
       </lineSegments>
       
-      {/* Place skill nodes at vertex positions */}
-      {vertices.current.map((position, i) => {
+      {verticesVectors.map((vec, i) => {
+        const position: [number, number, number] = [vec.x, vec.y, vec.z];
         let text = skills[nodeSkills[i] || 0] || "";
-        const visible = true;  // All nodes have text
+        const visible = true;
 
         if (!text) {
-          text = skills[0]; // Fallback to first skill if undefined
+          text = skills[0];
         }
         
         return (
@@ -203,14 +241,11 @@ export const BuckyBall = ({ skills }: BuckyBallProps) => {
   return (
     <div className="w-full h-full">
       <Canvas
-        // Position camera further out for a clearer exterior view
-        camera={{ position: [0, 0, 9], fov: 45 }}
+        camera={{ position: [0, 0, 11], fov: 45 }}
         gl={{ antialias: true }}
-        dpr={[1, 2]} // Responsive rendering quality
+        dpr={[1, 2]}
       >
-        {/* Fog starts at 2 units from camera and extends to 8 units */}
-        {/* This ensures the buckyball fades out appropriately with the camera at position [0,0,7] */}
-        <fog attach="fog" args={['#080820', 2, 8]} />
+        <fog attach="fog" args={['#080820', 2, 10]} />
         <ambientLight intensity={0.5} />
         <pointLight position={[10, 10, 10]} intensity={1} />
         <BuckyballScene skills={skills} />
