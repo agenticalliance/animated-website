@@ -1,4 +1,3 @@
-
 import { BuckyBall } from "@/components/BuckyBall";
 import { EmailSignupForm } from "@/components/EmailSignupForm";
 import { Header } from "@/components/Header";
@@ -48,13 +47,13 @@ const Index = () => {
               &copy; {new Date().getFullYear()} DreamLab. All rights reserved.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                Twitter
+              <a href="https://x.com/flossverse" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
+                Flossverse
               </a>
               <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
                 Instagram
               </a>
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+              <a href="https://www.linkedin.com/company/dreamlabinstitute/?" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
                 LinkedIn
               </a>
             </div>
