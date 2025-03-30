@@ -87,34 +87,32 @@ const buckyballVertices = () => {
 };
 
 const BuckyballScene = ({ skills }: { skills: string[] }) => {
-  const groupRef = useRef<THREE.Group>(null);
+  const groupRef = useRef<THREE.Group>(null); 
   const [cameraPos, setCameraPos] = useState(new THREE.Vector3(0, 0, 7));
-  const [nodeAssignments, setNodeAssignments] = useState<{ nodeIndex: number, skillIndex: number }[]>([]);
+  const [nodeSkills, setNodeSkills] = useState<number[]>([]);
   const [nodesToUpdate, setNodesToUpdate] = useState<number[]>([]);
   const [frameCount, setFrameCount] = useState(0);
   const vertices = useRef(buckyballVertices());
-  
+
   // Rotate the group and update camera position for skills visibility calculation
   useFrame((state) => {
     if (groupRef.current) {
+      // Slow down rotation for better readability
       groupRef.current.rotation.y += 0.002;
       groupRef.current.rotation.x += 0.0005;
     }
     setCameraPos(state.camera.position);
-    
+
     // Update frameCount only every 10 frames to avoid too frequent checks
     setFrameCount(prev => (prev + 1) % 10);
-    
+
     // Check every 10 frames which nodes are far away and should be updated
     if (frameCount === 0) {
       const newNodesToUpdate: number[] = [];
-      
-      // Check each node with an assignment
-      nodeAssignments.forEach(({ nodeIndex }) => {
-        const position = vertices.current[nodeIndex];
+
+      // Check all nodes to find the ones facing away
+      vertices.current.forEach((position, nodeIndex) => {
         const positionVector = new THREE.Vector3(...position);
-        
-        // Calculate distance and angle to determine if node is far from camera
         const cameraToPoint = positionVector.clone().sub(state.camera.position);
         const distance = cameraToPoint.length();
         const dotProduct = positionVector.clone().normalize().dot(state.camera.position.normalize());
@@ -124,41 +122,44 @@ const BuckyballScene = ({ skills }: { skills: string[] }) => {
           newNodesToUpdate.push(nodeIndex);
         }
       });
-      
+
       if (newNodesToUpdate.length > 0) {
         setNodesToUpdate(newNodesToUpdate);
       }
     }
   });
 
-  // Initial assignment of skills to nodes
+  // Initialize all nodes with skills
   useEffect(() => {
-    if (nodeAssignments.length === 0) {
+    if (nodeSkills.length === 0) {
       const totalNodes = vertices.current.length;
-      const numNodes = Math.min(10, skills.length);
-      const initialAssignments = [];
-      
-      // Create initial random assignments
-      for (let i = 0; i < numNodes; i++) {
-        initialAssignments.push({
-          nodeIndex: Math.floor(Math.random() * totalNodes),
-          skillIndex: i
-        });
+      const initialSkills: number[] = new Array(totalNodes);
+
+      // Assign a skill to each node, repeating skills if necessary
+      for (let i = 0; i < totalNodes; i++) {
+        initialSkills[i] = i % skills.length;
       }
-      
-      setNodeAssignments(initialAssignments);
+
+      // Shuffle the skills for a random initial distribution
+      for (let i = initialSkills.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [initialSkills[i], initialSkills[j]] = [initialSkills[j], initialSkills[i]];
+      }
+
+      setNodeSkills(initialSkills);
     }
   }, [skills]);
 
   // Update skills for nodes that are far away from camera
   useEffect(() => {
     if (nodesToUpdate.length > 0) {
-      setNodeAssignments(prev => prev.map(assignment => {
-        if (nodesToUpdate.includes(assignment.nodeIndex)) {
-          return { ...assignment, skillIndex: Math.floor(Math.random() * skills.length) };
+      setNodeSkills(prev => {
+        const newSkills = [...prev];
+        for (const nodeIndex of nodesToUpdate) {
+          newSkills[nodeIndex] = Math.floor(Math.random() * skills.length);
         }
-        return assignment;
-      }));
+        return newSkills;
+      });
       setNodesToUpdate([]);
     }
   }, [nodesToUpdate, skills]);
@@ -167,19 +168,17 @@ const BuckyballScene = ({ skills }: { skills: string[] }) => {
     <group ref={groupRef}>
       {/* Create edges for the buckyball wireframe */}
       <lineSegments>
-        <edgesGeometry args={[new THREE.IcosahedronGeometry(BUCKYBALL_RADIUS, 1)]} />
+        <edgesGeometry args={[new THREE.IcosahedronGeometry(BUCKYBALL_RADIUS, 1)]} /> 
         <lineBasicMaterial color="#3b82f6" transparent opacity={0.5} fog={true} />
       </lineSegments>
       
       {/* Place skill nodes at vertex positions */}
       {vertices.current.map((position, i) => {
-        // Find if this node has a skill assignment
-        const assignment = nodeAssignments.find(a => a.nodeIndex === i);
-        const visible = !!assignment;
-        let text = "";
-        
-        if (visible && assignment) {
-          text = skills[assignment.skillIndex % skills.length];
+        let text = skills[nodeSkills[i] || 0] || "";
+        const visible = true;  // All nodes have text
+
+        if (!text) {
+          text = skills[0]; // Fallback to first skill if undefined
         }
         
         return (
@@ -204,7 +203,8 @@ export const BuckyBall = ({ skills }: BuckyBallProps) => {
   return (
     <div className="w-full h-full">
       <Canvas
-        camera={{ position: [0, 0, 7], fov: 50 }}
+        // Position camera further out for a clearer exterior view
+        camera={{ position: [0, 0, 9], fov: 45 }}
         gl={{ antialias: true }}
         dpr={[1, 2]} // Responsive rendering quality
       >
