@@ -255,6 +255,8 @@ export const BuckyBall = ({ skills }: BuckyBallProps) => {
           rotateSpeed={0.5}
           autoRotate
           autoRotateSpeed={0.5}
+          minDistance={18}
+          maxDistance={18}
         />
       </Canvas>
     </div>
