@@ -24,15 +24,16 @@ const SkillNode = ({ position, text, cameraPosition, visible }: SkillNodeProps) 
 
     // Calculate the dot product to determine if this node is facing the camera
     const normalizedPos = positionVector.clone().normalize();
-    const normalizedCamera = cameraPosition.clone().normalize();
-    const dotProduct = normalizedPos.dot(normalizedCamera);
+    const cameraToPoint = positionVector.clone().sub(cameraPosition);
+    const distance = cameraToPoint.length();
+    const dotProduct = normalizedPos.dot(cameraPosition.clone().normalize());
 
-    // Much more permissive visibility calculations
-    // Only hide when clearly behind the buckyball
-    if (dotProduct < -0.3) {
-      setOpacity(0); // Behind the buckyball
-    } else if (dotProduct > 0) {
-      setOpacity(1); // In front of the buckyball - fully visible
+    // Use distance and orientation to fade text similar to fog effect
+    // Fog is configured from 2 to 8 units
+    if (dotProduct < -0.1 || distance > 7) {
+      setOpacity(0); // Behind the buckyball or too far away
+    } else if (distance < 5) {
+      setOpacity(Math.min((7 - distance) / 3, 1)); // Fade with distance, clamped to 1.0 max
     } else {
       setOpacity(0.5); // On the edge - 50% visible as requested
     }
@@ -132,7 +133,7 @@ const BuckyballScene = ({ skills }: { skills: string[] }) => {
       {/* Create edges for the buckyball wireframe */}
       <lineSegments>
         <edgesGeometry args={[new THREE.IcosahedronGeometry(BUCKYBALL_RADIUS, 1)]} />
-        <lineBasicMaterial color="#3b82f6" transparent opacity={0.6} />
+        <lineBasicMaterial color="#3b82f6" transparent opacity={0.6} fog={true} />
       </lineSegments>
 
       {/* Create the invisible buckyball mesh for reference */}
@@ -173,7 +174,9 @@ export const BuckyBall = ({ skills }: BuckyBallProps) => {
         gl={{ antialias: true }}
         dpr={[1, 2]} // Responsive rendering quality
       >
-        <fog attach="fog" args={['#080820', 3, 10]} /> {/* Adjusted fog for better visibility control */}
+        {/* Fog starts at 2 units from camera and extends to 8 units */}
+        {/* This ensures the buckyball fades out appropriately with the camera at position [0,0,7] */}
+        <fog attach="fog" args={['#080820', 2, 8]} />
         <ambientLight intensity={0.5} />
         <pointLight position={[10, 10, 10]} intensity={1} />
         <BuckyballScene skills={skills} />
