@@ -4,7 +4,7 @@ DreamLab website landing page - A React + Vite application with ThreeJS integrat
 
 ## 🚀 Live Site
 
-Visit the live site at: [https://dreamlabcoders.github.io/website/](https://dreamlabcoders.github.io/website/)
+Visit the live site at: [https://thedreamlab.uk](https://thedreamlab.uk)
 
 ## 🛠️ Technologies
 
@@ -44,7 +44,9 @@ npm run preview
 This project is configured to deploy automatically to GitHub Pages using GitHub Actions:
 
 1. Any push to the `main` branch triggers the deployment workflow
-2. The GitHub Action will build the site and deploy it to GitHub Pages
-3. The site will be available at https://dreamlabcoders.github.io/website/
+2. The GitHub Action will build the site and deploy it to the `gh-pages` branch
+3. The site will be available at the custom domain: https://thedreamlab.uk
+
+The custom domain is configured using a CNAME file in the repository. GitHub Pages will automatically use this for your domain configuration.
 
 You can also manually trigger the deployment from the Actions tab in the GitHub repository.
