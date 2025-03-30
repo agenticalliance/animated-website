@@ -31,7 +31,7 @@ const SkillNode = ({ position, text, visible }: SkillNodeProps) => {
       gradient.addColorStop(1, '#DAA520');
       
       context.fillStyle = gradient;
-      context.font = 'bold 16px Arial'; // Reduced from 32px to 16px (50% smaller)
+      context.font = 'bold 20px Arial'; // Increased from 16px to 20px (25% larger)
       context.textAlign = 'center';
       context.textBaseline = 'middle';
       context.fillText(text, canvas.width / 2, canvas.height / 2);
@@ -85,7 +85,7 @@ const SkillNode = ({ position, text, visible }: SkillNodeProps) => {
     <sprite 
       ref={textSprite} 
       position={position} 
-      scale={[2.5, 0.6, 1]} // Adjusted scale to better fit smaller text
+      scale={[3.0, 0.75, 1]} // Increased from [2.5, 0.6, 1] to account for larger text
     >
       <spriteMaterial 
         map={textTexture}
@@ -168,11 +168,11 @@ const BuckyballScene = ({ skills }: { skills: string[] }) => {
   const [nodeSkills, setNodeSkills] = useState<number[]>([]);
   const [nodesToUpdate, setNodesToUpdate] = useState<number[]>([]);
   const [frameCount, setFrameCount] = useState(0);
-  // Random walk rotation velocities
+  // Reduced rotation velocities by 50%
   const [rotationVelocity, setRotationVelocity] = useState({
-    x: 0.001, 
-    y: 0.002, 
-    z: 0.0005
+    x: 0.0005, // Reduced from 0.001
+    y: 0.001,  // Reduced from 0.002
+    z: 0.00025 // Reduced from 0.0005
   });
   
   const verticesVectors = useMemo(() => {
