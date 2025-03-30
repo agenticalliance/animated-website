@@ -147,8 +147,15 @@ const BuckyballScene = ({ skills }: { skills: string[] }) => {
 
   useFrame((state) => {
     if (groupRef.current) {
-      groupRef.current.rotation.y += 0.002;
-      groupRef.current.rotation.x += 0.0005;
+      // Temporarily disable rotation to help diagnose camera position issues
+      // groupRef.current.rotation.y += 0.002;
+      // groupRef.current.rotation.x += 0.0005;
+      
+      // Log camera position for debugging
+      if (frameCount === 0) {
+        console.log("Camera position:", state.camera.position);
+        console.log("Group position:", groupRef.current.position);
+      }
     }
     setCameraPos(state.camera.position);
     setFrameCount(prev => (prev + 1) % 10);
@@ -241,20 +248,19 @@ export const BuckyBall = ({ skills }: BuckyBallProps) => {
   return (
     <div className="w-full h-full">
       <Canvas
-        camera={{ position: [8, 5, 8], fov: 45 }}
+        camera={{ position: [0, 0, 40], fov: 25 }} // Extreme distance with narrow FOV
         gl={{ antialias: true }}
         dpr={[1, 2]}
       >
-        <fog attach="fog" args={['#080820', 5, 15]} />
+        <fog attach="fog" args={['#080820', 30, 50]} /> // Move fog far out to match camera
         <ambientLight intensity={0.5} />
         <pointLight position={[10, 10, 10]} intensity={1} />
         <BuckyballScene skills={skills} />
         <OrbitControls 
-          enableZoom={false}
-          enablePan={false}
-          enableRotate={false}
-          autoRotate
-          autoRotateSpeed={0.3}
+          enableZoom={true} // Enable zoom temporarily for diagnosis
+          enablePan={true} // Enable pan temporarily for diagnosis
+          enableRotate={true} // Enable rotation temporarily for diagnosis
+          autoRotate={false} // Disable auto-rotation temporarily
         />
       </Canvas>
     </div>
