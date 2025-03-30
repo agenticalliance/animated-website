@@ -30,10 +30,10 @@ const SkillNode = ({ position, text, cameraPosition, visible }: SkillNodeProps) 
 
     // Use distance and orientation to fade text similar to fog effect
     // Fog is configured from 2 to 8 units
-    if (dotProduct < -0.1 || distance > 7) {
+    if (dotProduct < -0.3 || distance > 7.5) {
       setOpacity(0); // Behind the buckyball or too far away
     } else if (distance < 5) {
-      setOpacity(Math.min((7 - distance) / 3, 1)); // Fade with distance, clamped to 1.0 max
+      setOpacity(Math.min((10 - distance) / 5, 1)); // Fade with distance, clamped to 1.0 max
     } else {
       setOpacity(0.5); // On the edge - 50% visible as requested
     }
@@ -42,12 +42,12 @@ const SkillNode = ({ position, text, cameraPosition, visible }: SkillNodeProps) 
   if (!visible) return null;
 
   return (
-    <Html position={position} zIndexRange={[0, 0]} occlude>
+    <Html position={position} zIndexRange={[0, 0]}>
       <div 
         ref={textRef}
         className="text-white text-sm font-mono whitespace-nowrap pointer-events-none"
         style={{ 
-          opacity: opacity * 0.5, // Set text to 50% alpha as required
+          opacity: opacity * 0.7, // Set text to 70% alpha for better visibility
           transition: "opacity 0.3s ease-in-out",
           background: "linear-gradient(90deg, #FFD700, #DAA520)",
           WebkitBackgroundClip: "text",
@@ -133,7 +133,7 @@ const BuckyballScene = ({ skills }: { skills: string[] }) => {
       {/* Create edges for the buckyball wireframe */}
       <lineSegments>
         <edgesGeometry args={[new THREE.IcosahedronGeometry(BUCKYBALL_RADIUS, 1)]} />
-        <lineBasicMaterial color="#3b82f6" transparent opacity={0.6} fog={true} />
+        <lineBasicMaterial color="#3b82f6" transparent opacity={0.5} fog={true} />
       </lineSegments>
 
       {/* Create the invisible buckyball mesh for reference */}
