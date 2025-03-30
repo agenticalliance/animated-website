@@ -3,6 +3,11 @@ import { EmailSignupForm } from "@/components/EmailSignupForm";
 import { Header } from "@/components/Header";
 import skillsData from "@/data/skills.json";
 
+/**
+ * Represents the main index/home page of the website.
+ * Features a hero section with the BuckyBall visualization,
+ * an email signup form, and a standard footer.
+ */
 const Index = () => {
   // Load skills from JSON file
   const skills = skillsData.skills;

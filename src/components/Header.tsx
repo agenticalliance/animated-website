@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
+/**
+ * Renders the fixed website header.
+ * Features a logo/title and a contact button.
+ * Changes appearance on scroll for better visibility.
+ */
 export const Header = () => {
   const [scrolled, setScrolled] = useState(false);
 
@@ -26,12 +31,9 @@ export const Header = () => {
           <span className="font-bold text-xl tracking-tight">DREAMLAB</span>
         </div>
         
-        <a 
-          href="mailto:info@thedreamlab.uk"
-          className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 text-foreground hover:bg-muted"
-        >
-          Contact
-        </a>
+        <Button variant="ghost" asChild>
+          <a href="mailto:info@thedreamlab.uk">Contact</a>
+        </Button>
       </div>
     </header>
   );
