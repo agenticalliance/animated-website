@@ -150,7 +150,7 @@ const BuckyballScene = ({ skills }: { skills: string[] }) => {
       groupRef.current.rotation.y += 0.002;
       groupRef.current.rotation.x += 0.0005;
     }
-    setCameraPos(state.camera.position);
+    setCameraPos(state.camera.position.clone());
     setFrameCount(prev => (prev + 1) % 10);
 
     if (frameCount === 0) {
@@ -250,11 +250,15 @@ export const BuckyBall = ({ skills }: BuckyBallProps) => {
         <pointLight position={[10, 10, 10]} intensity={1} />
         <BuckyballScene skills={skills} />
         <OrbitControls 
-          enableZoom={false}
+          enableZoom={true}
+          zoomSpeed={0.6}
           enablePan={false}
-          enableRotate={false}
+          enableRotate={true}
+          rotateSpeed={0.4}
           autoRotate
           autoRotateSpeed={0.3}
+          minDistance={10}
+          maxDistance={30}
         />
       </Canvas>
     </div>
