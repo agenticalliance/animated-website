@@ -7,33 +7,41 @@ import { ConvexGeometry } from 'three/examples/jsm/geometries/ConvexGeometry.js'
 type SkillNodeProps = {
   position: [number, number, number];
   text: string;
-  cameraPosition: THREE.Vector3;
   visible: boolean;
 };
 
-const SkillNode = ({ position, text, cameraPosition, visible }: SkillNodeProps) => {
+const SkillNode = ({ position, text, visible }: SkillNodeProps) => {
   const textRef = useRef<HTMLDivElement>(null);
   const [opacity, setOpacity] = useState(0);
   const positionVector = new THREE.Vector3(...position);
 
+  // Update opacity based on z-position (distance from camera along viewing axis)
   useFrame((state) => {
     if (!visible) {
       setOpacity(0);
       return;
     }
 
-    const worldPos = positionVector.clone();
-    if (state.camera) {
-      const cameraToPoint = worldPos.clone().sub(state.camera.position);
-      const distance = cameraToPoint.length();
-      const dotProduct = worldPos.normalize().dot(state.camera.position.clone().normalize());
-
-      if (dotProduct < -0.3 || distance > 35) {
+    // Get parent matrix (the buckyball group) to determine world position
+    // Access internal R3F properties with type assertion
+    const element = textRef.current?.parentElement?.parentElement;
+    // @ts-ignore - accessing internal R3F property
+    const parent = element && element.__r3f ? element.__r3f.parent : null;
+    
+    if (parent) {
+      const worldPos = positionVector.clone().applyMatrix4(parent.matrixWorld);
+      
+      // For a camera looking down z-axis, the z distance determines fog visibility
+      // Map z-position to opacity: z closer to camera = higher opacity
+      const zDistance = worldPos.z;  
+      
+      if (zDistance < -7) { // Behind fog, fully hidden
         setOpacity(0);
-      } else if (distance < 25) {
-        setOpacity(Math.min((35 - distance) / 10, 0.8));
+      } else if (zDistance > 7) { // In front of fog, fully visible
+        setOpacity(0.9); 
       } else {
-        setOpacity(0.4);
+        // Linear falloff in the fog zone
+        setOpacity(0.9 * (1 - Math.abs(zDistance) / 7));
       }
     }
   });
@@ -47,7 +55,7 @@ const SkillNode = ({ position, text, cameraPosition, visible }: SkillNodeProps) 
         className="text-white text-sm font-mono whitespace-nowrap pointer-events-none"
         style={{ 
           opacity,
-          transition: "opacity 0.3s ease-in-out",
+          transition: "opacity 0.2s ease-in-out",
           background: "linear-gradient(90deg, #FFD700, #DAA520)",
           WebkitBackgroundClip: "text",
           WebkitTextFillColor: "transparent",
@@ -131,6 +139,12 @@ const BuckyballScene = ({ skills }: { skills: string[] }) => {
   const [nodeSkills, setNodeSkills] = useState<number[]>([]);
   const [nodesToUpdate, setNodesToUpdate] = useState<number[]>([]);
   const [frameCount, setFrameCount] = useState(0);
+  // Random walk rotation velocities
+  const [rotationVelocity, setRotationVelocity] = useState({
+    x: 0.001, 
+    y: 0.002, 
+    z: 0.0005
+  });
   
   const verticesVectors = useMemo(() => {
     const vertexPositions = getC60Vertices(BUCKYBALL_RADIUS);
@@ -145,23 +159,36 @@ const BuckyballScene = ({ skills }: { skills: string[] }) => {
 
   useFrame((state) => {
     if (groupRef.current) {
-      groupRef.current.rotation.y += 0.002;
-      groupRef.current.rotation.x += 0.0005;
+      // Apply current rotation based on velocity
+      groupRef.current.rotation.x += rotationVelocity.x;
+      groupRef.current.rotation.y += rotationVelocity.y;
+      groupRef.current.rotation.z += rotationVelocity.z;
+      
+      // Random walk for rotation velocities (every 60 frames - ~1 second)
+      if (frameCount % 60 === 0) {
+        setRotationVelocity(prev => ({
+          x: prev.x + (Math.random() - 0.5) * 0.0005,
+          y: prev.y + (Math.random() - 0.5) * 0.0005,
+          z: prev.z + (Math.random() - 0.5) * 0.0002
+        }));
+      }
     }
 
-    setFrameCount(prev => (prev + 1) % 10);
+    setFrameCount(prev => prev + 1);
 
-    if (frameCount === 0) {
+    // Update skills for nodes going behind the fog (every 10 frames)
+    if (frameCount % 10 === 0) {
       const newNodesToUpdate: number[] = [];
+      
       verticesVectors.forEach((vec, nodeIndex) => {
         if (groupRef.current) {
+          // Get world position accounting for rotation
           const worldPos = vec.clone();
           worldPos.applyMatrix4(groupRef.current.matrixWorld);
-          const cameraToPoint = worldPos.clone().sub(state.camera.position);
-          const distance = cameraToPoint.length();
-          const dotProduct = worldPos.normalize().dot(state.camera.position.clone().normalize());
           
-          if (dotProduct < -0.3 && distance > BUCKYBALL_RADIUS * 2) {
+          // We consider the z position to determine if it's behind the fog plane
+          // For a fixed camera looking down z-axis, any vertex with z > fogFar is behind fog
+          if (worldPos.z < -10) { // Nodes going deep behind the buckyball
             newNodesToUpdate.push(nodeIndex);
           }
         }
@@ -207,7 +234,7 @@ const BuckyballScene = ({ skills }: { skills: string[] }) => {
   return (
     <group ref={groupRef}>
       <lineSegments geometry={wireframeGeometry}>
-        <lineBasicMaterial color="#3b82f6" transparent opacity={0.5} fog={true} />
+        <lineBasicMaterial color="#3b82f6" transparent opacity={0.7} fog={true} depthWrite={true} />
       </lineSegments>
       
       {verticesVectors.map((vec, i) => {
@@ -220,7 +247,6 @@ const BuckyballScene = ({ skills }: { skills: string[] }) => {
             key={i}
             position={position}
             text={text}
-            cameraPosition={new THREE.Vector3(0, 0, 25)}
             visible={true}
           />
         );
@@ -241,20 +267,10 @@ export const BuckyBall = ({ skills }: BuckyBallProps) => {
         gl={{ antialias: true }}
         dpr={[1, 2]}
       >
-        <fog attach="fog" args={['#080820', 8, 20]} />
+        <fog attach="fog" args={['#080820', 7, 15]} />
         <ambientLight intensity={0.5} />
         <pointLight position={[10, 10, 10]} intensity={1} />
         <BuckyballScene skills={skills} />
-        <OrbitControls 
-          enableZoom={true}
-          zoomSpeed={0.6}
-          enablePan={false}
-          enableRotate={false}
-          autoRotate
-          autoRotateSpeed={0.3}
-          minDistance={8}
-          maxDistance={20}
-        />
       </Canvas>
     </div>
   );
