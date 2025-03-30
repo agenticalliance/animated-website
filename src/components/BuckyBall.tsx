@@ -35,13 +35,13 @@ const SkillNode = ({ position, text, visible }: SkillNodeProps) => {
       // Map z-position to opacity: z closer to camera = higher opacity
       const zDistance = worldPos.z;  
       
-      if (zDistance < -7) { // Behind fog, fully hidden
+      if (zDistance < -14) { // Behind fog, fully hidden (adjusted for larger radius)
         setOpacity(0);
-      } else if (zDistance > 7) { // In front of fog, fully visible
-        setOpacity(0.9); 
+      } else if (zDistance > 14) { // In front of fog, fully visible (adjusted for larger radius)
+        setOpacity(1.0); 
       } else {
         // Linear falloff in the fog zone
-        setOpacity(0.9 * (1 - Math.abs(zDistance) / 7));
+        setOpacity(1.0 * (1 - Math.abs(zDistance) / 14));
       }
     }
   });
@@ -52,7 +52,7 @@ const SkillNode = ({ position, text, visible }: SkillNodeProps) => {
     <Html position={position} center>
       <div 
         ref={textRef}
-        className="text-white text-sm font-mono whitespace-nowrap pointer-events-none"
+        className="text-white text-md font-semibold whitespace-nowrap pointer-events-none"
         style={{ 
           opacity,
           transition: "opacity 0.2s ease-in-out",
@@ -61,8 +61,10 @@ const SkillNode = ({ position, text, visible }: SkillNodeProps) => {
           WebkitTextFillColor: "transparent",
           padding: "2px 8px",
           backdropFilter: "blur(1px)",
-          textShadow: "0 0 5px rgba(255,215,0,0.3)",
+          textShadow: "0 0 10px rgba(255,215,0,0.5)",
           transform: "translate(-50%, -50%)",
+          fontSize: "16px",
+          letterSpacing: "0.5px"
         }}
       >
         {text}
@@ -71,7 +73,7 @@ const SkillNode = ({ position, text, visible }: SkillNodeProps) => {
   );
 };
 
-const BUCKYBALL_RADIUS = 4;
+const BUCKYBALL_RADIUS = 8;
 
 // Function to generate 60 vertices for a C60 Buckminsterfullerene (Truncated Icosahedron)
 const getC60Vertices = (radius: number): Array<[number, number, number]> => {
@@ -188,7 +190,7 @@ const BuckyballScene = ({ skills }: { skills: string[] }) => {
           
           // We consider the z position to determine if it's behind the fog plane
           // For a fixed camera looking down z-axis, any vertex with z > fogFar is behind fog
-          if (worldPos.z < -10) { // Nodes going deep behind the buckyball
+          if (worldPos.z < -30) { // Nodes going deep behind the buckyball
             newNodesToUpdate.push(nodeIndex);
           }
         }
@@ -263,11 +265,11 @@ export const BuckyBall = ({ skills }: BuckyBallProps) => {
   return (
     <div className="w-full h-full">
       <Canvas
-        camera={{ position: [0, 0, 12], fov: 65 }}
+        camera={{ position: [0, 0, 20], fov: 65 }}
         gl={{ antialias: true }}
         dpr={[1, 2]}
       >
-        <fog attach="fog" args={['#080820', 7, 15]} />
+        <fog attach="fog" args={['#080820', 14, 30]} />
         <ambientLight intensity={0.5} />
         <pointLight position={[10, 10, 10]} intensity={1} />
         <BuckyballScene skills={skills} />
