@@ -1,34 +1,37 @@
 name: Deploy to GitHub Pages
 
 on:
+  # You can choose which events trigger the deploy.
   push:
-    branches: [main]
+    branches: 
+      - main     # Deploy to gh-pages whenever you push to main
   workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
+
     steps:
-      - name: Checkout
+      - name: Check out the code
         uses: actions/checkout@v3
 
-      - name: Setup Node
+      - name: Use Node
         uses: actions/setup-node@v3
         with:
           node-version: 18
-          cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Build
         run: npm run build
 
-      - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          folder: dist
-          branch: gh-pages
-          clean: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist     # Directory with the build output
+          # If you want to force-push (e.g., to remove old files completely):
+          # force_orphan: gh-pages 
+          # If you want a custom commit message:
+          # commit_message: Deploy from GitHub Actions
