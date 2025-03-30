@@ -11,64 +11,92 @@ type SkillNodeProps = {
 };
 
 const SkillNode = ({ position, text, visible }: SkillNodeProps) => {
-  const textRef = useRef<HTMLDivElement>(null);
-  const [opacity, setOpacity] = useState(0);
+  const textSprite = useRef<THREE.Sprite>(null);
+  const [opacity, setOpacity] = useState(0.7); // Start with higher opacity
   const positionVector = new THREE.Vector3(...position);
 
+  // Create a canvas texture for the text
+  const textTexture = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 64;
+    const context = canvas.getContext('2d');
+    if (context) {
+      context.fillStyle = 'transparent';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Gold gradient for text
+      const gradient = context.createLinearGradient(0, 0, canvas.width, 0);
+      gradient.addColorStop(0, '#FFD700');
+      gradient.addColorStop(1, '#DAA520');
+      
+      context.fillStyle = gradient;
+      context.font = 'bold 32px Arial';
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.fillText(text, canvas.width / 2, canvas.height / 2);
+      
+      // Add glow effect
+      context.shadowColor = 'rgba(255, 215, 0, 0.8)';
+      context.shadowBlur = 15;
+      context.fillText(text, canvas.width / 2, canvas.height / 2);
+    }
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    return texture;
+  }, [text]);
+
   useFrame((state) => {
-    if (!visible) {
+    if (!visible || !textSprite.current) return;
+    
+    // Get world space z distance from camera
+    const worldPos = textSprite.current.getWorldPosition(new THREE.Vector3());
+    const distanceToCamera = worldPos.distanceTo(state.camera.position);
+    const directionToCamera = worldPos.clone().sub(state.camera.position).normalize();
+    
+    // Check if behind or in front based on camera's forward direction
+    const cameraForward = new THREE.Vector3(0, 0, -1).applyQuaternion(state.camera.quaternion);
+    const dotProduct = directionToCamera.dot(cameraForward);
+    
+    // If behind camera or too far, hide completely
+    if (dotProduct < -0.1 || distanceToCamera > 40) {
       setOpacity(0);
-      return;
+    } 
+    // If in front and close, show with appropriate opacity
+    else if (dotProduct > 0.1) {
+      // Base opacity on distance - closer is more visible
+      const maxOpacity = 0.7;
+      const distanceFactor = Math.max(0, Math.min(1, 1 - (distanceToCamera - 15) / 25));
+      setOpacity(maxOpacity * distanceFactor);
     }
-
-    const element = textRef.current?.parentElement?.parentElement;
-    // @ts-ignore - Ensure this comment is directly above the error line
-    const parent = element && element.__r3f ? element.__r3f.parent : null;
-
-    if (parent) {
-      const worldPos = positionVector.clone().applyMatrix4(parent.matrixWorld);
-      const zDistance = worldPos.z;
-      const maxOpacity = 0.6; // Slightly increase max opacity for debugging
-      const fogStart = -18; // Adjusted for new fog range
-      const fogEnd = 18;   // Adjusted for new fog range
-
-      if (zDistance < fogStart) {
-        setOpacity(0);
-      } else if (zDistance > fogEnd) {
-        setOpacity(maxOpacity);
-      } else {
-        const factor = (zDistance - fogStart) / (fogEnd - fogStart);
-        setOpacity(factor * maxOpacity);
-      }
-    } else {
-      setOpacity(0);
+    // Side view - partial visibility
+    else {
+      setOpacity(0.2);
     }
+    
+    // Always look at camera (billboarding)
+    textSprite.current.lookAt(state.camera.position);
   });
 
   if (!visible) return null;
 
   return (
-    <Html position={position} center>
-      <div 
-        ref={textRef}
-        className="text-white text-md font-semibold whitespace-nowrap pointer-events-none"
-        style={{
-          opacity,
-          transition: "opacity 0.3s ease-in-out",
-          background: "linear-gradient(90deg, #FFD700, #DAA520)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-          padding: "2px 8px",
-          backdropFilter: "blur(1.5px)",
-          textShadow: "0 0 15px rgba(255,215,0,0.6)",
-          transform: "translate(-50%, -50%)",
-          fontSize: "16px",
-          letterSpacing: "0.5px"
-        }}
-      >
-        {text}
-      </div>
-    </Html>
+    <sprite 
+      ref={textSprite} 
+      position={position} 
+      scale={[3, 0.75, 1]}
+    >
+      <spriteMaterial 
+        map={textTexture}
+        transparent={true}
+        opacity={opacity}
+        depthWrite={false}
+        depthTest={true}
+        fog={true}
+        sizeAttenuation={true}
+      />
+    </sprite>
   );
 };
 
@@ -266,7 +294,7 @@ export const BuckyBall = ({ skills }: BuckyBallProps) => {
         gl={{ antialias: true }}
         dpr={[1, 2]}
       >
-        <fog attach="fog" args={['#080820', 18, 40]} />
+        <fog attach="fog" args={['#080820', 15, 25]} />
         <ambientLight intensity={0.5} />
         <pointLight position={[10, 10, 10]} intensity={1} />
         <BuckyballScene skills={skills} />
