@@ -28,11 +28,11 @@ export const Header = () => {
       <div className="container flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600"></div>
-          <span className="font-bold text-xl tracking-tight">DREAMLAB</span>
+          <span className="font-bold text-xl tracking-tight">Agentic Alliance</span>
         </div>
         
         <Button variant="ghost" asChild>
-          <a href="mailto:info@thedreamlab.uk">Contact</a>
+          <a href="mailto:info@agenticalliance.com">Contact</a>
         </Button>
       </div>
     </header>

@@ -1,10 +1,10 @@
-# DreamLab Website
+# Agentic Alliance Website
 
-DreamLab website landing page - A React + Vite application with ThreeJS integration.
+Agentic Alliance website landing page - A React + Vite application with ThreeJS integration.
 
 ## 🚀 Live Site
 
-Visit the live site at: [https://thedreamlab.uk](https://thedreamlab.uk)
+Visit the live site at: [https://agenticalliance.com](https://agenticalliance.com)
 
 ## 🛠️ Technologies
 
@@ -45,7 +45,7 @@ This project is configured to deploy automatically to GitHub Pages using GitHub 
 
 1. Any push to the `main` branch triggers the deployment workflow
 2. The GitHub Action will build the site and deploy it to the `gh-pages` branch
-3. The site will be available at the custom domain: https://thedreamlab.uk
+3. The site will be available at the custom domain: https://agenticalliance.com
 
 The custom domain is configured using a CNAME file in the repository. GitHub Pages will automatically use this for your domain configuration.
 

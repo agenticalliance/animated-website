@@ -19,8 +19,11 @@ function copySpecialFiles() {
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::",
+    host: true, // Listen on all addresses
     port: 8080,
+    strictPort: true, // Fail if port is in use
+    open: true, // Open browser on server start
+    cors: true, // Enable CORS
   },
   build: { outDir: 'dist' }, // Build to the dist folder for GitHub Pages
   base: '/', // Base to root for custom domain
